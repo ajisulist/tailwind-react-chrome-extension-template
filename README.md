@@ -78,12 +78,12 @@ and on your `src/manifest.json`:
 
 ```json
 {
-  "content_scripts": [
-    {
-      "matches": ["https://www.google.com/*"],
-      "js": ["myContentScript.bundle.js"]
-    }
-  ]
+	"content_scripts": [
+		{
+			"matches": ["https://www.google.com/*"],
+			"js": ["myContentScript.bundle.js"]
+		}
+	]
 }
 ```
 

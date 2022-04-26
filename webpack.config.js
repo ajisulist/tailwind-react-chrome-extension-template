@@ -1,51 +1,38 @@
-var webpack = require('webpack'),
-  path = require('path'),
-  fileSystem = require('fs-extra'),
-  env = require('./utils/env'),
-  CopyWebpackPlugin = require('copy-webpack-plugin'),
-  HtmlWebpackPlugin = require('html-webpack-plugin'),
-  TerserPlugin = require('terser-webpack-plugin');
-var { CleanWebpackPlugin } = require('clean-webpack-plugin');
+/* eslint-disable */
+const webpack = require('webpack');
+const path = require('path');
+
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+
+const manifest = require('./src/manifest.json');
+function generatePageTitle(title) {
+  return title ? `${title} - ${manifest.name}` : manifest.name;
+}
 
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 
-var alias = {
-  'react-dom': '@hot-loader/react-dom',
-};
+var fileExtensions = ['jpg', 'jpeg', 'png', 'gif', 'eot', 'otf', 'svg', 'ttf', 'woff', 'woff2'];
 
-// load the secrets
-var secretsPath = path.join(__dirname, 'secrets.' + env.NODE_ENV + '.js');
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
-var fileExtensions = [
-  'jpg',
-  'jpeg',
-  'png',
-  'gif',
-  'eot',
-  'otf',
-  'svg',
-  'ttf',
-  'woff',
-  'woff2',
-];
-
-if (fileSystem.existsSync(secretsPath)) {
-  alias['secrets'] = secretsPath;
-}
-
-var options = {
+const options = {
   mode: process.env.NODE_ENV || 'development',
   entry: {
-    newtab: path.join(__dirname, 'src', 'pages', 'Newtab', 'index.jsx'),
-    options: path.join(__dirname, 'src', 'pages', 'Options', 'index.jsx'),
-    popup: path.join(__dirname, 'src', 'pages', 'Popup', 'index.jsx'),
-    background: path.join(__dirname, 'src', 'pages', 'Background', 'index.js'),
-    contentScript: path.join(__dirname, 'src', 'pages', 'Content', 'index.js'),
-    devtools: path.join(__dirname, 'src', 'pages', 'Devtools', 'index.js'),
-    panel: path.join(__dirname, 'src', 'pages', 'Panel', 'index.jsx'),
+    newtab: path.join(__dirname, 'src/newtab'),
+    options: path.join(__dirname, 'src/options'),
+    popup: path.join(__dirname, 'src/popup'),
+    background: path.join(__dirname, 'src/background'),
+    content: path.join(__dirname, 'src/content'),
+    devtools: path.join(__dirname, 'src/devtools'),
+    panel: path.join(__dirname, 'src/panel'),
   },
   chromeExtensionBoilerplate: {
-    notHotReload: ['background', 'contentScript', 'devtools'],
+    notHotReload: ['background', 'content', 'devtools'],
   },
   output: {
     filename: '[name].bundle.js',
@@ -83,34 +70,24 @@ var options = {
       {
         test: /\.html$/,
         loader: 'html-loader',
-        exclude: /node_modules/,
+        exclude: [/node_modules/, /public/],
       },
-      { test: /\.(ts|tsx)$/, loader: 'ts-loader', exclude: /node_modules/ },
       {
-        test: /\.(js|jsx)$/,
-        use: [
-          {
-            loader: 'source-map-loader',
-          },
-          {
-            loader: 'babel-loader',
-          },
-        ],
+        test: /\.(js|jsx|ts|tsx)$/,
         exclude: /node_modules/,
+        loader: 'babel-loader',
+        options: {
+          plugins: [isDevelopment && require.resolve('react-refresh/babel')].filter(Boolean),
+        },
       },
     ],
   },
   resolve: {
-    alias: alias,
-    extensions: fileExtensions
-      .map((extension) => '.' + extension)
-      .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
+    extensions: fileExtensions.map(extension => '.' + extension).concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
   },
   plugins: [
-    new CleanWebpackPlugin({ verbose: false }),
+    new CleanWebpackPlugin(),
     new webpack.ProgressPlugin(),
-    // expose and write the allowed env vars on the compiled bundle
-    new webpack.EnvironmentPlugin(['NODE_ENV']),
     new CopyWebpackPlugin({
       patterns: [
         {
@@ -133,7 +110,7 @@ var options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: 'src/pages/Content/content.styles.css',
+          from: 'src/content/content.styles.css',
           to: path.join(__dirname, 'build'),
           force: true,
         },
@@ -142,7 +119,7 @@ var options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: 'src/assets/img/icon-128.png',
+          from: 'public/img/icon-128.png',
           to: path.join(__dirname, 'build'),
           force: true,
         },
@@ -151,50 +128,62 @@ var options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: 'src/assets/img/icon-34.png',
+          from: 'public/img/icon-34.png',
           to: path.join(__dirname, 'build'),
           force: true,
         },
       ],
     }),
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src', 'pages', 'Newtab', 'index.html'),
+      title: generatePageTitle('New Tab'),
+      template: 'public/index.html',
       filename: 'newtab.html',
       chunks: ['newtab'],
       cache: false,
+      showErrors: true,
     }),
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src', 'pages', 'Options', 'index.html'),
+      title: generatePageTitle('Options'),
+      template: 'public/index.html',
       filename: 'options.html',
       chunks: ['options'],
       cache: false,
+      showErrors: true,
     }),
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src', 'pages', 'Popup', 'index.html'),
+      title: generatePageTitle('Popup'),
+      template: 'public/index.html',
       filename: 'popup.html',
       chunks: ['popup'],
       cache: false,
+      showErrors: true,
     }),
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src', 'pages', 'Devtools', 'index.html'),
+      title: generatePageTitle('Devtools'),
+      template: 'public/index.html',
       filename: 'devtools.html',
       chunks: ['devtools'],
       cache: false,
+      showErrors: true,
     }),
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src', 'pages', 'Panel', 'index.html'),
+      title: generatePageTitle('Panel'),
+      template: 'public/index.html',
       filename: 'panel.html',
       chunks: ['panel'],
       cache: false,
+      showErrors: true,
     }),
+    new ForkTsCheckerWebpackPlugin(),
   ],
   infrastructureLogging: {
     level: 'info',
   },
 };
 
-if (env.NODE_ENV === 'development') {
+if (isDevelopment) {
   options.devtool = 'cheap-module-source-map';
+  options.plugins = [...options.plugins, new ReactRefreshWebpackPlugin()];
 } else {
   options.optimization = {
     minimize: true,
