@@ -1,6 +1,6 @@
 <img src="src/assets/img/icon-128.png" width="64"/>
 
-# Tailwind React Chrome Extension Template (Tailwind 3, React 17 and Webpack 5)
+# Tailwind React Chrome Extension Template (Tailwind 3, React 18 and Webpack 5)
 
 ## Features
 
